@@ -1,4 +1,5 @@
 import {mountWorkspace} from './workspace.mjs';
+import {createControlSettings} from './control-settings.mjs';
 
 (()=>{
  if(window.__atelierNavigationInstalled)return;window.__atelierNavigationInstalled=true;
@@ -28,8 +29,10 @@ import {mountWorkspace} from './workspace.mjs';
  side.style.cssText='position:fixed;right:16px;top:54px;z-index:990;border:1px solid #716184;background:#26232c;color:#d2bff2;border-radius:8px;padding:7px 12px;font:12px Segoe UI,system-ui;cursor:pointer;-webkit-app-region:no-drag';side.onclick=()=>host.hasAttribute('data-visible')?close():show();document.body.append(side);
  const runtimeButton=document.createElement('button');runtimeButton.id='atelier-obsidian-runtime-demo';runtimeButton.textContent='◇ Actual Obsidian · demo';runtimeButton.title='Test the actual installed Obsidian renderer with a disposable copied vault';runtimeButton.style.cssText='position:fixed;right:110px;top:54px;z-index:991;border:1px solid #8870b0;background:#292231;color:#dfcff5;border-radius:8px;padding:7px 12px;font:12px Segoe UI,system-ui;cursor:pointer;-webkit-app-region:no-drag';
  runtimeButton.onclick=async()=>{if(runtimeVisible){hideRuntime();return;}close();const revision=++runtimeRevision;runtimeVisible=true;runtimeButton.disabled=true;runtimeButton.textContent='Opening Obsidian…';try{const response=await window.atelierObsidian.request({action:'runtime.prototype.show'});if(revision!==runtimeRevision)return;if(!response?.ok)throw new Error(response?.message??'The runtime did not respond.');runtimeButton.textContent='× Close actual Obsidian';runtimeButton.title='Actual Obsidian · disposable demo · prototype';}catch(error){if(revision!==runtimeRevision)return;runtimeVisible=false;runtimeButton.textContent='Obsidian demo unavailable';runtimeButton.title=error.message;console.error('[Atelier runtime demo]',error.message);}finally{runtimeButton.disabled=false;}};document.body.append(runtimeButton);
+ const settings=createControlSettings(document,payload=>window.atelierObsidian.request(payload),{onOpen:close});
+ const settingsButton=document.createElement('button');settingsButton.id='atelier-obsidian-settings';settingsButton.textContent='⚙';settingsButton.title='Obsidian settings';settingsButton.setAttribute('aria-label','Obsidian settings');settingsButton.style.cssText='position:fixed;right:312px;top:54px;z-index:1001;border:1px solid #716184;background:#26232c;color:#d2bff2;border-radius:8px;padding:7px 10px;font:12px Segoe UI,system-ui;cursor:pointer;-webkit-app-region:no-drag';settingsButton.onclick=()=>settings.open();document.body.append(settingsButton);
  function attach(){
-  syncTheme();position();
+  syncTheme();position();settings.attach();
   if(document.getElementById('atelier-obsidian-primary-tab'))return;
   const native=[...document.querySelectorAll('button,a,[role=tab]')],code=native.find(n=>n.textContent.trim()==='Code'),cowork=native.find(n=>n.textContent.trim()==='Cowork');
   if(!code||!cowork)return;let group=code.parentElement;

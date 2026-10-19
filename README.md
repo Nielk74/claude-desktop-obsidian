@@ -65,7 +65,9 @@ npm run install:desktop
 
 Open **Obsidian** in the main navigation for the custom workspace. **Vaults** toggles it in its saved layout. **Actual Obsidian · demo**, beside Vaults at the top right, opens the actual renderer with a copied **Claude Runtime Demo** vault. Its supporting scripts must remain in this checkout.
 
-The demo's minimal layout uses its enabled **atelier** CSS snippet. The small button at the top left collapses the file list. To restore the full interface, use the gear at the bottom of the file list (or `Ctrl+,`), then turn off **atelier** under Appearance → CSS snippets. The style can also be applied or removed live with `node scripts/apply-minimal-ui.mjs --vault "path to Claude Runtime Demo"` and the optional `--restore` flag. An exact original snippet backup is preserved beside it.
+Use the **⚙ Obsidian settings** button beside the actual-runtime launcher to switch **Obsidian controls → Minimal / All**. The choice is saved and applied to open demo views through the enabled **atelier** snippet; reopening Claude uses the same mode. The same row is inserted into Claude's settings panels when their native settings container is available. The original custom vault viewer is unchanged. The small button at the top left of embedded Obsidian collapses its file list.
+
+The style can also be applied or removed live with `node scripts/apply-minimal-ui.mjs --vault "path to Claude Runtime Demo"` and the optional `--restore` flag. Only the marked minimal-controls block is removed for All; the vault's existing stylesheet and its original backup are preserved. Keep the demo's **atelier** CSS snippet enabled for the switch to take effect.
 
 For updates to an existing patch, stage with `npm run build:desktop -- --update`. When an unapplied stage already exists, supply `--base-manifest` pointing to the manifest of the version actually installed. The installer refuses unknown file changes and a running application.
 
@@ -97,7 +99,7 @@ Reload plugins in a compatible Code session. This mod shares the catalog with th
 
 ## Verification and limitations
 
-`npm test` currently runs 68 Node tests covering vault boundaries, catalog persistence, concurrent/stale saves, images, Canvas input, saved UI state, rollback, frame trust and runtime isolation/lifecycle. The official mod has a separate `claude plugin test` suite. Windows CI builds generated fixtures and runs the Node suite.
+`npm test` covers vault boundaries, catalog and control-preference persistence, concurrent/stale saves, images, Canvas input, saved UI state, rollback, frame trust and runtime isolation/lifecycle. The official mod has a separate `claude plugin test` suite. Windows CI builds generated fixtures and runs the Node suite.
 
 Native Electron checks exercised note/Canvas rendering, resizing, hide/show, host settings, theme-listener preservation and clean shutdown. Browser and mod-kit tests do not establish native pixels; the real-renderer demo has also received a direct visual check inside Claude.
 

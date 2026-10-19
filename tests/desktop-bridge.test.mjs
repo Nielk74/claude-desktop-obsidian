@@ -20,4 +20,6 @@ test('the actual Electron bridge refuses remote and child frames before dispatch
  answer=await handler({sender,senderFrame:{url:'https://evil.test'}},{action:'runtime.prototype.show'});assert.equal(answer.ok,false);
  answer=await handler({sender,senderFrame:{url:'app://localhost/new'}},{action:'runtime.prototype.show'});assert.equal(answer.ok,false);
  answer=await handler({sender,senderFrame:mainFrame},{action:'runtime.prototype.show'});assert.equal(answer.ok,false);assert.match(answer.message,/prototype.*configured/i);
+ answer=await handler({sender,senderFrame:{url:'https://evil.test'}},{action:'runtime.preferences.set',args:{controls:'all'}});assert.equal(answer.ok,false);assert.match(answer.message,/main local Claude window/);
+ answer=await handler({sender,senderFrame:{url:'app://localhost/new'}},{action:'runtime.preferences.get'});assert.equal(answer.ok,false);assert.match(answer.message,/main local Claude window/);
 });

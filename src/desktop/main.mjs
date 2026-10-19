@@ -7,7 +7,7 @@ const runtimePrototype=createRuntimePrototype(__ATELIER_CONFIG__);
 ipcMain.handle('atelier:obsidian:request',async(event,request)=>{
  try{
   if(!isTrustedDesktopFrame(event.senderFrame?.url,event.senderFrame===event.sender.mainFrame))throw new Error('This vault bridge is available only in the main local Claude window.');
-  if(request?.action?.startsWith('runtime.prototype.'))return {ok:true,value:await runtimePrototype(BrowserWindow.fromWebContents(event.sender),request.action)};
+  if(request?.action?.startsWith('runtime.prototype.')||request?.action?.startsWith('runtime.preferences.'))return {ok:true,value:await runtimePrototype(BrowserWindow.fromWebContents(event.sender),request.action,request.args)};
   if(request?.action==='catalog.pick'){
    const window=BrowserWindow.fromWebContents(event.sender),options={title:'Add an Obsidian vault',buttonLabel:'Add vault',properties:['openDirectory']};
    const picked=await(window?dialog.showOpenDialog(window,options):dialog.showOpenDialog(options));

@@ -1,0 +1,60 @@
+/* Minimal embedded controls for the inspected Obsidian 1.14.4 desktop UI. */
+body {
+  --ribbon-width: 0px;
+  --tab-height: 36px;
+}
+
+/* Keep the native file-sidebar toggle, without its vertical app ribbon. */
+.workspace-ribbon.mod-primary {
+  width: 0 !important;
+  min-width: 0 !important;
+  flex-basis: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: visible !important;
+}
+.workspace-ribbon.mod-primary .sidebar-toggle-button {
+  position: fixed !important;
+  inset: 4px auto auto 6px !important;
+  width: 28px !important;
+  height: 28px !important;
+  z-index: 50;
+  border-radius: 5px;
+  -webkit-app-region: no-drag;
+}
+.mod-left-split .workspace-tab-header-container {
+  padding-left: 40px !important;
+}
+.workspace:not(.is-primary-sidedock-open) .mod-root .workspace-tabs.mod-top .workspace-tab-header-container {
+  padding-left: 40px !important;
+}
+
+/* The remaining workspace is a file list, note tabs and the document itself. */
+.workspace-ribbon .side-dock-actions,
+.workspace-ribbon .side-dock-settings,
+.workspace-ribbon.mod-secondary,
+.sidebar-toggle-button.mod-right,
+.status-bar,
+.mod-root .view-header,
+.mod-left-split .nav-header,
+.workspace-tab-header-new-tab,
+.workspace-tab-header-tab-list,
+.workspace-sidedock-vault-profile [aria-label="Help"],
+.inline-title,
+.metadata-container {
+  display: none !important;
+}
+.mod-root .workspace-tab-header-container {
+  padding-right: 8px !important;
+}
+
+/* Retain zoom in, fit and zoom out; editing remains available in context menus. */
+.canvas-controls > .canvas-control-group:not(:has(.canvas-control-item[aria-label*="zoom" i])),
+.canvas-controls .canvas-control-item[aria-label="Reset zoom"],
+.canvas-card-menu {
+  display: none !important;
+}
+.canvas-controls {
+  top: 12px !important;
+  right: 12px !important;
+}

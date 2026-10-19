@@ -8,12 +8,17 @@ The project includes a custom vault viewer and an experimental integration that 
 
 *This screenshot is a crop of the embedded Obsidian view, showing a fictional demo vault and its Canvas. It does not show the surrounding Claude window.*
 
+![Minimal embedded controls with the demo Canvas](docs/images/obsidian-minimal-demo.png)
+
+*The minimal-control layout, captured in the disposable Electron test shell using the same renderer and stylesheet.*
+
 ## Current capabilities
 
 - **Obsidian navigation tab** alongside Code/Cowork, plus **Vaults** to reopen the last layout.
 - Multiple named vaults, native folder selection, search, Markdown editing and stale-save detection in the custom viewer.
 - Inline local images, Canvas pan/zoom/Fit and previews of a supported subset of Bases expressions.
 - Remembered last note, scroll position, expanded/docked layout, visibility and Canvas camera.
+- Minimal embedded controls: file navigation and note tabs, with Canvas zoom/fit. Ribbon actions, breadcrumbs, status counters, properties and secondary toolbars are hidden.
 - **Actual Obsidian · demo** loads installed Obsidian's renderer with its real sidebar, tabs, note rendering and Canvas controls. It currently uses a disposable copied demo vault rather than registered user vaults.
 - An additional plugin for the official Claude Code mods API and an earlier MCP App implementation.
 
@@ -60,6 +65,8 @@ npm run install:desktop
 
 Open **Obsidian** in the main navigation for the custom workspace. **Vaults** toggles it in its saved layout. **Actual Obsidian · demo**, beside Vaults at the top right, opens the actual renderer with a copied **Claude Runtime Demo** vault. Its supporting scripts must remain in this checkout.
 
+The demo's minimal layout uses its enabled **atelier** CSS snippet. The small button at the top left collapses the file list. To restore the full interface, use the gear at the bottom of the file list (or `Ctrl+,`), then turn off **atelier** under Appearance → CSS snippets. The style can also be applied or removed live with `node scripts/apply-minimal-ui.mjs --vault "path to Claude Runtime Demo"` and the optional `--restore` flag. An exact original snippet backup is preserved beside it.
+
 For updates to an existing patch, stage with `npm run build:desktop -- --update`. When an unapplied stage already exists, supply `--base-manifest` pointing to the manifest of the version actually installed. The installer refuses unknown file changes and a running application.
 
 To restore the previous installation, fully quit Claude and run:
@@ -94,6 +101,6 @@ Reload plugins in a compatible Code session. This mod shares the catalog with th
 
 Native Electron checks exercised note/Canvas rendering, resizing, hide/show, host settings, theme-listener preservation and clean shutdown. Browser and mod-kit tests do not establish native pixels; the real-renderer demo has also received a direct visual check inside Claude.
 
-The custom viewer implements a subset of Obsidian features. The real renderer currently uses a copied demo vault. Connecting registered vaults to it, production packaging, community plugins, popouts and embedded browser compatibility remain unfinished. A smaller set of embedded controls is the next UI improvement.
+The custom viewer implements a subset of Obsidian features. The real renderer currently uses a copied demo vault. Connecting registered vaults to it, production packaging, community plugins, popouts and embedded browser compatibility remain unfinished.
 
 See [architecture](docs/ARCHITECTURE.md) and [runtime experiments](docs/EXPERIMENTS.md) for implementation details.

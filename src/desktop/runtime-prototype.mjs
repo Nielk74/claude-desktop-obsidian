@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
+import {applyDemoMinimalUi} from './minimal-ui.mjs';
 
 export function createRuntimePrototype(config){
  const entries=new WeakMap();
@@ -22,6 +23,8 @@ export function createRuntimePrototype(config){
     const installed=config.installed??path.join(process.env.LOCALAPPDATA,'Programs','Obsidian');
     await fsp.access(path.join(installed,'resources','obsidian.asar','main.js'));await fsp.mkdir(root,{recursive:true});
     if(!fs.existsSync(vault))await fsp.cp(config.defaultVault,vault,{recursive:true,errorOnExist:true,force:false});
+    assertLive();
+    await applyDemoMinimalUi(config.project,vault);
     assertLive();
     const log=(event,extra={})=>{entry.events.push({time:new Date().toISOString(),event,...extra});entry.events=entry.events.slice(-80);fs.writeFileSync(path.join(root,'state.json'),JSON.stringify({prototype:true,pid:process.pid,hostWindowId:window.id,events:entry.events},null,2),'utf8');};
     const require=createRequire(path.join(config.project,'package.json')),factory=require(path.join(config.project,'scripts','prototypes','runtime-scope.cjs'));

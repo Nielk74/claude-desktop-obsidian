@@ -16,6 +16,8 @@ The catalog lives under `%LOCALAPPDATA%\Claude-3p\atelier-obsidian`. Saved layou
 
 The runtime currently uses a copied vault under `.local/obsidian-claude-prototype/`. It has not replaced the custom multi-vault viewer. Application archives and binaries are not committed to this repository.
 
+`obsidian-minimal.css` reduces the real renderer's controls through the copied vault's existing CSS snippet. `minimal-ui.mjs` adds a bounded marked block, keeps an original backup, and supports an idempotent apply/restore. `scripts/apply-minimal-ui.mjs` applies that style live through Obsidian's snippet watcher; future runtime preparation installs it for newly copied demo vaults. The underlying editor and context menus remain available.
+
 ## Packaging and restore
 
 `scripts/build-desktop-ui.mjs` bundles the bridge/UI, verifies the expected version, repacks the required ASAR entries, and updates the executable's embedded ASAR header hash. Unrelated executable bytes and fuses are preserved. An update must match the exact previously installed manifest.

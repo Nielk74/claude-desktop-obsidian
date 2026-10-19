@@ -4,6 +4,7 @@ dist/
 .local/
 test-results/
 *.log
+*.before-claude-minimal
 
 # Generated vaults, local configuration and downloaded application copies.
 /Atelier Demo Vault/

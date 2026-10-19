@@ -1,0 +1,6 @@
+{
+  "name": "atelier-obsidian",
+  "version": "0.1.0",
+  "description": "An Obsidian button and vault pane in Claude Desktop's Code tab.",
+  "author": { "name": "Atelier" }
+}

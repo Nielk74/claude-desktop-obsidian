@@ -1,0 +1,19 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import http from 'node:http';
+import {randomBytes} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {createCatalogService} from '../src/catalog-service.mjs';
+
+const project=fileURLToPath(new URL('../',import.meta.url)),fixtures=path.join(project,'.local/desktop-ui-fixtures'),token=randomBytes(24).toString('hex');
+await fs.mkdir(fixtures,{recursive:true});const demo=path.join(fixtures,'Atelier');try{await fs.access(demo);}catch{await fs.cp(path.join(project,'Atelier Demo Vault'),demo,{recursive:true});}
+const research=path.join(fixtures,'Research');await fs.mkdir(research,{recursive:true});await fs.writeFile(path.join(research,'Home.md'),'# Research notebook\n\nA second vault for ideas and experiments.\n\n- [[Ideas]]\n','utf8');await fs.writeFile(path.join(research,'Ideas.md'),'# Ideas\n\nNotes from a separate vault.','utf8');
+const service=createCatalogService({catalogFile:path.join(fixtures,'vaults.json'),defaultVault:demo});const script=await fs.readFile(path.join(project,'.local/desktop-ui/build/workspace.js'),'utf8');
+const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Atelier · Desktop UI preview</title><style>body{margin:0;background:#141414;color:#eee;font:14px Segoe UI,system-ui}aside{position:fixed;inset:0 auto 0 0;width:280px;border-right:1px solid #303030;padding:48px 14px;box-sizing:border-box}aside>div{display:flex;background:#252525;border-radius:7px}button{background:transparent;border:0;color:#ddd;padding:8px 15px;cursor:pointer}aside p{padding:12px;color:#aaa}main{margin-left:280px;min-height:100vh;padding:90px 60px;box-sizing:border-box}h1{font-size:24px;font-weight:400}.composer{position:fixed;bottom:45px;left:360px;right:80px;background:#242424;border:1px solid #333;border-radius:14px;padding:20px;color:#aaa}</style></head><body><aside data-testid="sidebar"><div><button>Cowork</button><button>Code</button></div><p>+ New</p><p>Customize</p><p>Example project</p><p>◦ Greeting</p></aside><main><h1>What would you like to work on?</h1><p>Local preview of the Desktop navigation patch.</p><div class="composer">Describe a task or ask a question</div></main><script>window.atelierObsidian={request:async r=>(await fetch('/api',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer ${token}'},body:JSON.stringify(r)})).json()};</script><script>${script.replace(/<\/script/gi,'<\\/script')}</script></body></html>`;
+const server=http.createServer(async(req,res)=>{
+ const origin='http://127.0.0.1:'+server.address().port;res.setHeader('Cache-Control','no-store');res.setHeader('X-Frame-Options','DENY');res.setHeader('X-Content-Type-Options','nosniff');
+ if(req.headers.host!=='127.0.0.1:'+server.address().port){res.writeHead(403);res.end();return;}
+ if(req.method==='GET'&&req.url==='/'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(html);return;}
+ if(req.method!=='POST'||req.url!=='/api'||req.headers.authorization!=='Bearer '+token||(req.headers.origin&&req.headers.origin!==origin)){res.writeHead(403);res.end();return;}
+ try{const buffers=[];let count=0;for await(const chunk of req){count+=chunk.length;if(count>3*1024*1024)throw new Error('Request too large');buffers.push(chunk);}const request=JSON.parse(Buffer.concat(buffers).toString('utf8'));if(request.action==='catalog.pick')throw new Error('The native folder picker is available in Desktop. Enter a path for this preview.');const value=await service(request);res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,value}));}catch(error){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,message:error.message}));}
+});server.listen(4318,'127.0.0.1',()=>console.log('Desktop UI preview: http://127.0.0.1:4318 · second vault: '+research));

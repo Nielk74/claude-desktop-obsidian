@@ -1,0 +1,12 @@
+{
+  "name": "atelier-local",
+  "metadata": { "description": "Local Atelier UI mods for Claude Desktop's Code tab." },
+  "owner": { "name": "Atelier" },
+  "plugins": [
+    {
+      "name": "atelier-obsidian",
+      "source": "./mods/obsidian",
+      "description": "An Obsidian button and native vault pane for Claude Desktop's Code tab."
+    }
+  ]
+}

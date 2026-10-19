@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Atelier · Obsidian</title><!--CSS--></head>
+<body data-theme="dark">
+<div id="app">
+ <header class="topbar"><button id="nav-toggle" class="icon-button" aria-label="Toggle file navigation">☰</button><div class="brand"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1 23 8 19 23 9 27 1 17 5 5Z" fill="#b89aef"/><path d="m12 1-3 16 10 6-7-22Z" fill="#7f61ba"/><path d="m1 17 8 0 0 10Z" fill="#d6c0fa"/></svg><span>ATELIER <span class="brand-divider">/</span> <span class="muted">OBSIDIAN</span></span></div><span id="connection" class="connection">Connecting…</span><button id="expand" class="quiet" hidden>Expand</button></header>
+ <div class="workspace">
+  <aside class="sidebar"><div class="vault-heading"><div class="eyebrow">YOUR WORKSPACE</div><div class="vault-row"><strong id="vault-name">Atelier Demo Vault</strong><button id="refresh" class="icon-button" aria-label="Refresh vault">↻</button></div></div>
+   <label class="search-box"><span aria-hidden="true">⌕</span><input id="search" placeholder="Search notes and content…" aria-label="Search vault"><kbd>Ctrl K</kbd></label>
+   <div class="filters" role="group" aria-label="File type"><button data-filter="all" class="active">All</button><button data-filter="md">Notes</button><button data-filter="canvas">Canvas</button><button data-filter="base">Views</button></div>
+   <nav id="file-tree" aria-label="Vault files"><p class="empty">Loading files…</p></nav><footer class="sidebar-footer"><span class="live-dot"></span> Local vault <span id="file-count"></span></footer>
+  </aside>
+  <main class="main"><div class="document-bar"><div id="breadcrumb" class="breadcrumb">Home.md</div><div class="document-actions"><button id="read-mode" class="quiet active">Read</button><button id="edit-mode" class="quiet">Edit</button><button id="save" class="primary" hidden disabled>Save changes</button></div></div>
+   <div class="context-toolbar"><span id="document-kind" class="kind-label">MARKDOWN NOTE</span><div class="toolbar-actions"><button id="copy-passage" class="quiet">Copy passage</button><button id="use-passage" class="accent">Use note in chat <span aria-hidden="true">↗</span></button></div></div>
+   <div id="document-area" class="document-area"><article id="reader" class="reader"><div class="empty">Connecting to your vault…</div></article><textarea id="editor" spellcheck="false" aria-label="Edit Markdown note" hidden></textarea><div id="canvas-view" hidden></div><div id="base-view" hidden></div></div>
+   <div id="draft-warning" class="draft-warning" hidden><span id="draft-message">Your draft has unsaved changes.</span><button id="discard" class="quiet">Reload from disk</button></div>
+   <div id="context-tray" class="context-tray" hidden><div class="context-label">CONTEXT FOR YOUR NEXT MESSAGE <span id="context-count"></span></div><div id="context-items"></div></div>
+   <footer class="document-footer"><span id="document-status">Your notes, alongside your conversation.</span><button id="capture" class="quiet">＋ Save a Claude response</button></footer>
+  </main>
+ </div>
+ <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</div>
+<dialog id="capture-dialog"><form id="capture-form"><div class="eyebrow">FROM CONVERSATION TO VAULT</div><h2>Keep the useful part.</h2><p class="muted">Paste a Claude response or a passage you want to keep.</p><label>Save as<select id="capture-mode"><option value="new">A new Markdown note</option><option value="append">Append to the current note</option></select></label><label id="capture-path-label">Note path<input id="capture-path" required></label><label>Conversation link <span class="muted">(optional)</span><input id="capture-source" type="url" placeholder="https://claude.ai/chat/…"></label><label>Content<textarea id="capture-content" rows="9" required placeholder="Paste the response here…"></textarea></label><p id="capture-error" class="error" role="alert"></p><div class="dialog-actions"><button id="capture-cancel" type="button" class="quiet">Cancel</button><button type="submit" class="primary">Save to vault</button></div></form></dialog>
+<dialog id="copy-dialog"><h2>Copy for your prompt</h2><p class="muted">Your existing chat draft stays untouched. Copy this passage and paste it where you need it.</p><textarea id="copy-text" rows="10" readonly aria-label="Passage to copy"></textarea><div class="dialog-actions"><button id="copy-close" class="primary">Close</button></div></dialog>
+<!--JS--></body></html>

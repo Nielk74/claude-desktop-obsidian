@@ -1,0 +1,4 @@
+{
+  "description": "Native Obsidian launcher and vault pane",
+  "modules": ["./register.js"]
+}

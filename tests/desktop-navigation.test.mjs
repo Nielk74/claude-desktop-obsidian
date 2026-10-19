@@ -13,12 +13,13 @@ async function fixture(defer=false){
   addEventListener(event,callback){this.listeners.set(event,callback);}click(){this.listeners.get('click')?.();return this.onclick?.();}
  }
  const body=new Element('body'),group=new Element(),code=new Element('button'),cowork=new Element('button');code.textContent='Code';cowork.textContent='Cowork';group.append(cowork);group.append(code);body.append(group);
- const walk=node=>[node,...node.children.flatMap(walk)],document={body,createElement:tag=>new Element(tag),querySelectorAll:selector=>selector.startsWith('[data-atelier')?[]:walk(body).filter(n=>n.tagName==='button')};
+ const sidebarRect={right:360,width:360,height:1200},chromeRect={bottom:36,width:2000,height:36};
+ const walk=node=>[node,...node.children.flatMap(walk)],document={body,createElement:tag=>new Element(tag),querySelector:selector=>selector==='.dframe-sidebar'?{getBoundingClientRect:()=>sidebarRect}:selector==='.dframe-chrome-bar'?{getBoundingClientRect:()=>chromeRect}:null,querySelectorAll:selector=>selector.startsWith('[data-atelier')?[]:walk(body).filter(n=>n.tagName==='button')};
  const requests=[];let finish;const pending=new Promise(resolve=>{finish=resolve;});
- let onMutation;const context={document,window:{atelierObsidian:{request:async request=>{requests.push(request);if(defer&&request.action==='runtime.prototype.show')await pending;return{ok:true,value:{visible:true}};}},addEventListener(){}},console,getComputedStyle:()=>({display:'flex'}),MutationObserver:class{constructor(callback){onMutation=callback;}observe(){}},requestAnimationFrame(callback){callback();},cancelAnimationFrame(){}};
+ let onMutation;const events=new Map(),context={document,window:{innerWidth:2000,innerHeight:1200,atelierObsidian:{request:async request=>{requests.push(request);if(defer&&request.action==='runtime.prototype.show')await pending;return{ok:true,value:{visible:true}};}},addEventListener:(event,callback)=>events.set(event,callback)},console,getComputedStyle:node=>({display:'flex',opacity:node.style?.opacity,getPropertyValue:()=> '144px'}),MutationObserver:class{constructor(callback){onMutation=callback;}observe(){}},requestAnimationFrame(callback){callback();},cancelAnimationFrame(){}};
  context.window.location={href:'app://localhost/code/one'};context.window.history={pushState(_state,_title,url){if(url)context.window.location.href=new URL(url,context.window.location.href).href;},replaceState(_state,_title,url){if(url)context.window.location.href=new URL(url,context.window.location.href).href;}};
  vm.runInNewContext(compiled,context);
- return{body,group,code,cowork,tab:group.children.find(n=>n!==code&&n!==cowork),requests,finish,refresh:()=>onMutation(),navigate:route=>context.window.history.pushState(null,'',route)};
+ return{body,group,code,cowork,tab:group.children.find(n=>n!==code&&n!==cowork),requests,finish,refresh:()=>onMutation(),setSidebarWidth:width=>{sidebarRect.right=width;sidebarRect.width=width;},resize:(width,height)=>{context.window.innerWidth=width;context.window.innerHeight=height;events.get('resize')?.();},navigate:route=>context.window.history.pushState(null,'',route)};
 }
 
 test('one Obsidian tab opens the actual renderer without mounting the retired custom viewer',async()=>{
@@ -43,4 +44,17 @@ test('ordinary SPA navigation hides actual Obsidian instead of covering the new 
 test('Obsidian remains accessible when native modes disappear from a still-connected container',async()=>{
  const {body,group,tab,code,cowork,refresh}=await fixture();group.children=[tab];refresh();assert.equal(tab.parentElement,body);assert.match(tab.style.cssText,/position:fixed/);
  group.append(code);group.append(cowork);refresh();assert.equal(tab.parentElement,group);
+});
+
+test('opening and resizing use measured geometry and unchanged layouts do not send redundant updates',async()=>{
+ const {tab,requests,refresh,setSidebarWidth,resize,code}=await fixture();await tab.click();
+ assert.equal(requests.at(-1).args.layout.left,360);assert.equal(requests.at(-1).args.layout.top,36);const before=requests.length;refresh();assert.equal(requests.length,before);
+ setSidebarWidth(420);refresh();assert.equal(requests.at(-1).action,'runtime.prototype.layout');assert.equal(requests.at(-1).args.layout.left,420);
+ resize(2400,1400);assert.equal(requests.at(-1).args.layout.viewport.width,2400);assert.equal(requests.at(-1).args.layout.viewport.height,1400);
+ code.click();const hidden=requests.length;setSidebarWidth(0);refresh();assert.equal(requests.length,hidden);
+});
+
+test('the launcher stays reachable when native mode buttons are inside an invisible sidebar pop-out',async()=>{
+ const {group,body,tab,refresh}=await fixture();group.style.opacity='0';refresh();assert.equal(tab.parentElement,body);assert.match(tab.style.cssText,/top:4px/);
+ group.style.opacity='1';refresh();assert.equal(tab.parentElement,group);
 });

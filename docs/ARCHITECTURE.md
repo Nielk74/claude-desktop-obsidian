@@ -4,6 +4,8 @@
 
 `src/desktop/navigation.mjs` adds one Obsidian tab to Claude's local page. It opens the installed runtime directly; switching modes, navigating or opening settings hides the view. The earlier custom Desktop renderer has been removed.
 
+`runtime-layout.mjs` measures Claude's sidebar/title bar and converts CSS viewport coordinates to Electron content coordinates. Navigation sends initial bounds with show, and changed bounds during resize/sidebar transitions. The adapter validates these measurements and resizes its existing child view. The fallback button stays in the title bar, above the child view.
+
 `src/desktop/main.mjs` and `preload.cjs` expose a narrow request bridge. Only the trusted top-level `app://localhost` frame can dispatch requests. `catalog-service.mjs` maps registered IDs to vault roots; callers cannot replace roots per request. `vault.mjs` enforces file boundaries and optimistic version checks. `vault-catalog.mjs` serializes catalog changes using locked atomic updates.
 
 The optional Code-session mod retains its catalog under `%LOCALAPPDATA%\Claude-3p\atelier-obsidian`. The embedded runtime manages its own copied vault and workspace state.

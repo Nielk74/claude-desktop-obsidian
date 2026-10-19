@@ -13,7 +13,8 @@ module.exports=async function(host,config,log){
  const {createRuntimePrototype}=await import(pathToFileURL(path.join(sourceProject,'src/desktop/runtime-prototype.mjs')).href);
  const request=createRuntimePrototype({project,installed:config.installed,runtimePrefix:'atelier:adapter-check:'+process.pid+':',defaultVault:path.join(sourceProject,'Atelier Demo Vault')});
  await request(host,'runtime.preferences.set',{controls:'all'});
- await request(host,'runtime.prototype.show');
+ const [contentWidth,contentHeight]=host.getContentSize(),layout={left:450,top:45,viewport:{width:contentWidth*1.25,height:contentHeight*1.25}};
+ await request(host,'runtime.prototype.show',{layout});
  let view;
  for(let attempt=0;attempt<80;attempt++){
   view=host.contentView.children.find(child=>child.webContents?.getURL().includes('obsidian.md/index.html'));
@@ -21,6 +22,11 @@ module.exports=async function(host,config,log){
   await new Promise(resolve=>setTimeout(resolve,250));
  }
  assert.ok(view,'Runtime view should be attached to the host');assert.equal(await view.webContents.executeJavaScript('!!window.app?.workspace?.layoutReady'),true);
+ assert.deepEqual(view.getBounds(),{x:360,y:36,width:contentWidth-360,height:contentHeight-36});
+ await request(host,'runtime.prototype.layout',{layout:{...layout,left:500}});assert.equal(view.getBounds().x,400);
+ await request(host,'runtime.prototype.layout',{layout:{...layout,left:0}});assert.equal(view.getBounds().x,0);
+ await request(host,'runtime.prototype.layout',{layout});
+ log('adapter-layout-passed',{sidebarFollows:true,zoomCorrect:true,titlebarFits:true,bounds:view.getBounds()});
  async function checkControls(mode){
   await request(host,'runtime.preferences.set',{controls:mode});
   let width;
@@ -30,7 +36,8 @@ module.exports=async function(host,config,log){
  }
  await checkControls('minimal');await checkControls('all');await checkControls('minimal');
  await request(host,'runtime.prototype.hide');assert.equal(view.getVisible(),false);
- await request(host,'runtime.prototype.show');assert.equal(view.getVisible(),true);
+ await request(host,'runtime.prototype.show',{layout:{...layout,left:500}});assert.equal(view.getVisible(),true);assert.equal(view.getBounds().x,400);
+ await request(host,'runtime.prototype.layout',{layout});
  await view.webContents.executeJavaScript('window.app.workspace.openLinkText("07 Canvases/Claude Obsidian - working canvas.canvas","",false)');
  assert.equal(await view.webContents.executeJavaScript('window.app.workspace.activeLeaf.view.getViewType()'),'canvas');
  assert.equal(app.name,before.name);assert.equal(app.getPath('userData'),before.path);assert.equal(Menu.getApplicationMenu(),before.menu);assert.deepEqual(process.argv,before.argv);

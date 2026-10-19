@@ -15,6 +15,7 @@ This experimental integration renders Obsidian in an Electron view inside Claude
 ## Current capabilities
 
 - **Obsidian navigation tab** alongside Code/Cowork opens the actual renderer. Clicking it again, switching modes or navigating to a chat hides the view.
+- The view fits below Claude's title bar and follows the sidebar edge, including interface zoom, sidebar changes and window resizing.
 - Obsidian's own sidebar, tabs, note rendering, images and Canvas navigation, using a copied **Claude Runtime Demo** vault.
 - **Settings → General → Obsidian** switches between Minimal and All controls, with the choice saved across restarts.
 - Minimal controls retain file navigation, note tabs and Canvas zoom/fit while hiding secondary toolbars.

@@ -4,45 +4,43 @@ import vm from 'node:vm';
 import {build} from 'esbuild';
 
 let compiled;
-async function fixture(savedLayout,deferRuntimeShow=false){
- compiled??=(await build({entryPoints:['src/desktop/navigation.mjs'],bundle:true,write:false,format:'iife',plugins:[{name:'workspace-boundary',setup(b){b.onResolve({filter:/^\.\/workspace\.mjs$/},()=>({path:'workspace',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export function mountWorkspace(host,request,{setLayout}){return {preferences:{visible:false,layout:savedLayout},show(layout=savedLayout){setLayout(layout);},hide(){}};}'}));}}]})).outputFiles[0].text;
+async function fixture(defer=false){
+ compiled??=(await build({entryPoints:['src/desktop/navigation.mjs'],bundle:true,write:false,format:'iife'})).outputFiles[0].text;
  class Element{
-  constructor(){this.dataset={};this.attributes=new Map();this.style={};this.children=[];this.isConnected=true;}
-  append(child){this.children.push(child);}setAttribute(k,v){this.attributes.set(k,v);}removeAttribute(k){this.attributes.delete(k);}hasAttribute(k){return this.attributes.has(k);}
+  constructor(tag='div'){this.tagName=tag;this.style={};this.children=[];this.attributes=new Map();this.listeners=new Map();this.isConnected=true;this.textContent='';}
+  append(child){if(child.parentElement)child.parentElement.children=child.parentElement.children.filter(n=>n!==child);child.parentElement=this;this.children.push(child);}
+  setAttribute(k,v){this.attributes.set(k,v);}contains(child){return this.children.includes(child)||this.children.some(n=>n.contains(child));}getBoundingClientRect(){return{width:280};}
+  addEventListener(event,callback){this.listeners.set(event,callback);}click(){this.listeners.get('click')?.();return this.onclick?.();}
  }
- const body=new Element(),main=new Element(),document={body,documentElement:new Element(),createElement:()=>new Element(),querySelector:()=>main,querySelectorAll:()=>[],getElementById:id=>body.children.find(e=>e.id===id)};
- document.documentElement.dataset.mode='dark';
- const requests=[];let finishRuntimeShow;const showPending=new Promise(resolve=>{finishRuntimeShow=resolve;});
- const context={savedLayout,document,window:{atelierObsidian:{request:async request=>{requests.push(request);if(deferRuntimeShow&&request.action==='runtime.prototype.show')await showPending;return{ok:true,value:{}};}},addEventListener(){}},getComputedStyle:()=>({backgroundColor:'rgb(20,20,20)'}),innerWidth:1920,innerHeight:1080,matchMedia:()=>({addEventListener(){}}),MutationObserver:class{observe(){}},requestAnimationFrame(){},cancelAnimationFrame(){}};
+ const body=new Element('body'),group=new Element(),code=new Element('button'),cowork=new Element('button');code.textContent='Code';cowork.textContent='Cowork';group.append(cowork);group.append(code);body.append(group);
+ const walk=node=>[node,...node.children.flatMap(walk)],document={body,createElement:tag=>new Element(tag),querySelectorAll:selector=>selector.startsWith('[data-atelier')?[]:walk(body).filter(n=>n.tagName==='button')};
+ const requests=[];let finish;const pending=new Promise(resolve=>{finish=resolve;});
+ let onMutation;const context={document,window:{atelierObsidian:{request:async request=>{requests.push(request);if(defer&&request.action==='runtime.prototype.show')await pending;return{ok:true,value:{visible:true}};}},addEventListener(){}},console,getComputedStyle:()=>({display:'flex'}),MutationObserver:class{constructor(callback){onMutation=callback;}observe(){}},requestAnimationFrame(callback){callback();},cancelAnimationFrame(){}};
  context.window.location={href:'app://localhost/code/one'};context.window.history={pushState(_state,_title,url){if(url)context.window.location.href=new URL(url,context.window.location.href).href;},replaceState(_state,_title,url){if(url)context.window.location.href=new URL(url,context.window.location.href).href;}};
  vm.runInNewContext(compiled,context);
- return {host:body.children.find(e=>e.id==='atelier-obsidian-workspace'),side:body.children.find(e=>e.id==='atelier-obsidian-side-access'),prototype:body.children.find(e=>e.id==='atelier-obsidian-runtime-demo'),requests,finishRuntimeShow,navigate:route=>context.window.history.pushState(null,'',route)};
+ return{body,group,code,cowork,tab:group.children.find(n=>n!==code&&n!==cowork),requests,finish,refresh:()=>onMutation(),navigate:route=>context.window.history.pushState(null,'',route)};
 }
 
-test('the Vaults button reopens an expanded workspace in its saved expanded layout',async()=>{
- const {host,side}=await fixture('full');side.onclick();
- assert.equal(host.dataset.layout,'full');assert.equal(host.hasAttribute('data-visible'),true);
- side.onclick();assert.equal(host.hasAttribute('data-visible'),false);side.onclick();assert.equal(host.dataset.layout,'full');
+test('one Obsidian tab opens the actual renderer without mounting the retired custom viewer',async()=>{
+ const {body,group,tab,requests}=await fixture();assert.ok(tab);assert.equal(body.children.length,1);assert.equal(group.children.length,3);assert.equal(requests.length,0);
+ await tab.click();assert.equal(requests.at(-1).action,'runtime.prototype.show');assert.equal(tab.attributes.get('aria-pressed'),'true');
+ await tab.click();assert.equal(requests.at(-1).action,'runtime.prototype.hide');assert.equal(tab.attributes.get('aria-pressed'),'false');
 });
 
-test('the Vaults button preserves a saved docked layout and toggles it closed',async()=>{
- const {host,side}=await fixture('dock');side.onclick();
- assert.equal(host.dataset.layout,'dock');side.onclick();assert.equal(host.hasAttribute('data-visible'),false);
+test('Code and Cowork close the actual renderer',async()=>{
+ const {tab,code,cowork,requests}=await fixture();for(const destination of [code,cowork]){await tab.click();destination.click();assert.equal(requests.at(-1).action,'runtime.prototype.hide');}
 });
 
-test('the actual-runtime demo has a direct button and closes when the regular workspace is opened',async()=>{
- const {prototype,side,requests}=await fixture('full');assert.ok(prototype,'A visible actual-runtime button is required');
- await prototype.onclick();assert.equal(requests.at(-1).action,'runtime.prototype.show');
- side.onclick();assert.equal(requests.at(-1).action,'runtime.prototype.hide');
+test('leaving while actual Obsidian loads cancels its pending visibility',async()=>{
+ const {tab,code,requests,finish}=await fixture(true);const opening=tab.click();code.click();assert.equal(requests.at(-1).action,'runtime.prototype.hide');
+ finish();await opening;assert.equal(tab.attributes.get('aria-pressed'),'false');assert.equal(tab.disabled,false);
 });
 
-test('opening the regular workspace while the actual runtime loads cancels its pending visibility',async()=>{
- const {prototype,side,requests,finishRuntimeShow}=await fixture('full',true);
- const opening=prototype.onclick();side.onclick();assert.equal(requests.at(-1).action,'runtime.prototype.hide');
- finishRuntimeShow();await opening;assert.equal(prototype.textContent,'◇ Actual Obsidian · demo');
+test('ordinary SPA navigation hides actual Obsidian instead of covering the new chat',async()=>{
+ const {tab,requests,navigate}=await fixture();await tab.click();navigate('/new');assert.equal(requests.at(-1).action,'runtime.prototype.hide');assert.equal(tab.attributes.get('aria-pressed'),'false');
 });
 
-test('ordinary SPA navigation hides the actual runtime instead of covering the new chat',async()=>{
- const {prototype,requests,navigate}=await fixture('full');await prototype.onclick();navigate('/new');
- assert.equal(requests.at(-1).action,'runtime.prototype.hide');assert.equal(prototype.textContent,'◇ Actual Obsidian · demo');
+test('Obsidian remains accessible when native modes disappear from a still-connected container',async()=>{
+ const {body,group,tab,code,cowork,refresh}=await fixture();group.children=[tab];refresh();assert.equal(tab.parentElement,body);assert.match(tab.style.cssText,/position:fixed/);
+ group.append(code);group.append(cowork);refresh();assert.equal(tab.parentElement,group);
 });

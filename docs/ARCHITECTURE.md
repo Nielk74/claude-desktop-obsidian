@@ -1,12 +1,12 @@
 # Architecture
 
-## Custom Desktop workspace
+## Desktop navigation
 
-`src/desktop/navigation.mjs` adds the Obsidian mode tab and workspace controls to Claude's local page. `workspace.mjs` supplies the multi-vault interface, with separate modules for images, Canvas input and persistent view state.
+`src/desktop/navigation.mjs` adds one Obsidian tab to Claude's local page. It opens the installed runtime directly; switching modes, navigating or opening settings hides the view. The earlier custom Desktop renderer has been removed.
 
 `src/desktop/main.mjs` and `preload.cjs` expose a narrow request bridge. Only the trusted top-level `app://localhost` frame can dispatch requests. `catalog-service.mjs` maps registered IDs to vault roots; callers cannot replace roots per request. `vault.mjs` enforces file boundaries and optimistic version checks. `vault-catalog.mjs` serializes catalog changes using locked atomic updates.
 
-The catalog lives under `%LOCALAPPDATA%\Claude-3p\atelier-obsidian`. Saved layouts and scroll/camera positions live in local renderer storage; they do not contain note bodies or drafts.
+The optional Code-session mod retains its catalog under `%LOCALAPPDATA%\Claude-3p\atelier-obsidian`. The embedded runtime manages its own copied vault and workspace state.
 
 ## Installed-runtime experiment
 
@@ -14,7 +14,7 @@ The catalog lives under `%LOCALAPPDATA%\Claude-3p\atelier-obsidian`. Saved layou
 
 `runtime-scope-preload.cjs` adapts Electron/remote calls. Replies and subscriptions use the scope's namespace, theme listeners are tracked separately, and host-closing/navigation paths cancel or hide the view. The scope does not replace the host's application menu or register a system protocol. The renderer has the Node integration required by Obsidian; this compatibility adapter is not a security sandbox for arbitrary plugins.
 
-The runtime currently uses a copied vault under `.local/obsidian-claude-prototype/`. It has not replaced the custom multi-vault viewer. Application archives and binaries are not committed to this repository.
+The runtime currently uses a copied vault under `.local/obsidian-claude-prototype/`. Application archives and binaries are not committed to this repository.
 
 `obsidian-minimal.css` reduces the real renderer's controls through the copied vault's existing CSS snippet. `minimal-ui.mjs` adds a bounded marked block, keeps an original backup, and supports an idempotent apply/restore. `scripts/apply-minimal-ui.mjs` applies that style live through Obsidian's snippet watcher; future runtime preparation installs it for newly copied demo vaults. The underlying editor and context menus remain available.
 
@@ -23,6 +23,8 @@ The runtime currently uses a copied vault under `.local/obsidian-claude-prototyp
 `scripts/build-desktop-ui.mjs` bundles the bridge/UI, verifies the expected version, repacks the required ASAR entries, and updates the executable's embedded ASAR header hash. Unrelated executable bytes and fuses are preserved. An update must match the exact previously installed manifest.
 
 `src/desktop/patch.mjs` and `scripts/install-desktop-ui.mjs` validate staged files and original backups, serialize installation, refuse a running app, and retain rollback data in `.local/desktop-ui/`.
+
+The patch also inserts an Obsidian section into the inspected native General settings component. That section provides an explicit mount slot for `control-settings.mjs`, which loads and saves the shared runtime preference. Its module is a fourth verified installation target; legacy three-file manifests remain restorable. An unfamiliar General component is rejected during staging.
 
 ## Other interfaces
 

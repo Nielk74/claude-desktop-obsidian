@@ -4,7 +4,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {readAsar,repackAsar,updateEmbeddedHash,injectWorkspace,applyStaged,restoreStaged,checkUpdateBase} from '../src/desktop/patch.mjs';
+import vm from 'node:vm';
+import {readAsar,repackAsar,updateEmbeddedHash,injectWorkspace,injectNativeSettings,nativeSettingsFile,applyStaged,restoreStaged,checkUpdateBase} from '../src/desktop/patch.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 test('updates accept only the exact previous patch at the same installation',()=>{
  const installDir=path.resolve('fixture-app'),current={'claude.exe':Buffer.from('exe'),'resources/app.asar':Buffer.from('asar'),'resources/ion-dist/index.html':Buffer.from('html')};
@@ -13,6 +14,18 @@ test('updates accept only the exact previous patch at the same installation',()=
  assert.throws(()=>checkUpdateBase(manifest,installDir,{...current,'resources/app.asar':Buffer.from('external update')}),/changed/i);
  assert.throws(()=>checkUpdateBase(manifest,path.resolve('other-app'),current),/installation/i);
  assert.throws(()=>checkUpdateBase({...manifest,files:manifest.files.slice(1)},installDir,current),/manifest/i);
+ const extended={...current,[nativeSettingsFile]:Buffer.from('settings')},nextManifest={...manifest,files:Object.entries(extended).map(([relative,bytes])=>({relative,patchedHash:hash(bytes)}))};
+ assert.doesNotThrow(()=>checkUpdateBase(nextManifest,installDir,extended));
+ assert.throws(()=>checkUpdateBase(nextManifest,installDir,{...extended,[nativeSettingsFile]:Buffer.from('external edit')}),/changed/i);
+});
+
+test('the official General component renders an Obsidian section using Claude native settings components',()=>{
+ const source='function P(){return a(ne,{children:[o(F,{}),e&&!t&&a(r,{children:[o(z,{}),o(U,{})]})]})}var Ft={};';
+ const patched=injectNativeSettings(source),jsx=(type,props)=>({type,props});
+ const result=vm.runInNewContext(patched+'P();',{a:jsx,o:jsx,ne:'Panel',h:'Section',F:'Appearance',e:true,t:false,r:'Fragment',z:'Voice',U:'Notifications'});
+ assert.equal(result.props.children[0].type,'Appearance');const section=result.props.children.at(-1);
+ assert.equal(section.type,'Section');assert.equal(section.props.title,'Obsidian');assert.equal(section.props.children.props['data-atelier-settings-slot'],'obsidian-controls');
+ assert.equal(injectNativeSettings(patched),patched);assert.throws(()=>injectNativeSettings('unknown settings version'),/anchor/i);assert.throws(()=>injectNativeSettings(source+source),/anchor/i);
 });
 function archive(){const body=Buffer.from('original source');const raw=Buffer.from(JSON.stringify({files:{'entry.js':{size:body.length,offset:'0',integrity:{algorithm:'SHA256',hash:hash(body),blockSize:4194304,blocks:[hash(body)]}},native:{files:{'lib.node':{size:4,unpacked:true}}}}}));const length=8+raw.length+((4-raw.length%4)%4),h=Buffer.alloc(length),outer=Buffer.alloc(8);h.writeUInt32LE(length-4,0);h.writeUInt32LE(raw.length,4);raw.copy(h,8);outer.writeUInt32LE(4,0);outer.writeUInt32LE(length,4);return Buffer.concat([outer,h,body]);}
 test('archive patch preserves unrelated and unpacked entries and recalculates changed file hashes',()=>{
@@ -30,12 +43,13 @@ test('workspace injection is idempotent and safely contains inline script delimi
 });
 test('staged installation and exact restore refuse unrelated application changes',async t=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'atelier-patch-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const installDir=path.join(root,'app-2.42304.2'),stageDir=path.join(root,'stage');await fs.mkdir(stageDir,{recursive:true});
- const files=[];for(const relative of ['claude.exe','resources/app.asar','resources/ion-dist/index.html']){
+ const files=[];for(const relative of ['claude.exe','resources/app.asar','resources/ion-dist/index.html',nativeSettingsFile]){
   const target=path.join(installDir,relative),backup=path.join(stageDir,relative+'.original'),staged=path.join(stageDir,relative+'.patched');await fs.mkdir(path.dirname(target),{recursive:true});await fs.mkdir(path.dirname(backup),{recursive:true});await fs.writeFile(target,'original');await fs.writeFile(backup,'original');await fs.writeFile(staged,'patched');files.push({relative,backup,staged,originalHash:hash('original'),patchedHash:hash('patched')});
  }
  const manifest={installDir,files};await applyStaged(manifest,{isRunning:async()=>false});assert.equal(await fs.readFile(path.join(installDir,'claude.exe'),'utf8'),'patched');
  await fs.writeFile(path.join(installDir,'claude.exe'),'external edit');await assert.rejects(restoreStaged(manifest,{isRunning:async()=>false}),/changed/i);assert.equal(await fs.readFile(path.join(installDir,'claude.exe'),'utf8'),'external edit');
  await fs.writeFile(path.join(installDir,'claude.exe'),'patched');await restoreStaged(manifest,{isRunning:async()=>false});assert.equal(await fs.readFile(path.join(installDir,'resources/app.asar'),'utf8'),'original');
+ assert.equal(await fs.readFile(path.join(installDir,nativeSettingsFile),'utf8'),'original');
  await assert.rejects(applyStaged(manifest,{isRunning:async()=>true}),/quit|closed/i);
 });
 

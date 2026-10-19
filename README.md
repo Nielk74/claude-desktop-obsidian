@@ -1,8 +1,8 @@
 # Claude Desktop × Obsidian
 
-An Obsidian workspace directly inside Claude Desktop: open notes from a navigation tab, keep several vaults within reach, or browse beside a conversation without asking the model to open anything.
+The actual installed Obsidian application inside Claude Desktop, opened directly from a navigation tab.
 
-The project includes a custom vault viewer and an experimental integration that renders the **actual installed Obsidian application** in an Electron view inside Claude. The real-renderer demo has been exercised in Claude Desktop on Windows.
+This experimental integration renders Obsidian in an Electron view inside Claude. The real-renderer demo has been exercised in Claude Desktop on Windows. The earlier custom Desktop viewer has been removed.
 
 ![Actual Obsidian renderer with the generated demo vault](docs/images/obsidian-runtime-demo.png)
 
@@ -14,12 +14,10 @@ The project includes a custom vault viewer and an experimental integration that 
 
 ## Current capabilities
 
-- **Obsidian navigation tab** alongside Code/Cowork, plus **Vaults** to reopen the last layout.
-- Multiple named vaults, native folder selection, search, Markdown editing and stale-save detection in the custom viewer.
-- Inline local images, Canvas pan/zoom/Fit and previews of a supported subset of Bases expressions.
-- Remembered last note, scroll position, expanded/docked layout, visibility and Canvas camera.
-- Minimal embedded controls: file navigation and note tabs, with Canvas zoom/fit. Ribbon actions, breadcrumbs, status counters, properties and secondary toolbars are hidden.
-- **Actual Obsidian · demo** loads installed Obsidian's renderer with its real sidebar, tabs, note rendering and Canvas controls. It currently uses a disposable copied demo vault rather than registered user vaults.
+- **Obsidian navigation tab** alongside Code/Cowork opens the actual renderer. Clicking it again, switching modes or navigating to a chat hides the view.
+- Obsidian's own sidebar, tabs, note rendering, images and Canvas navigation, using a copied **Claude Runtime Demo** vault.
+- **Settings → General → Obsidian** switches between Minimal and All controls, with the choice saved across restarts.
+- Minimal controls retain file navigation, note tabs and Canvas zoom/fit while hiding secondary toolbars.
 - An additional plugin for the official Claude Code mods API and an earlier MCP App implementation.
 
 The Desktop patch and runtime adapter are experimental and version-specific: **Claude Desktop 2.42304.2** and **Obsidian 1.14.4**, tested on Windows 11. This is an independent project, not an official Anthropic or Obsidian integration. The repository contains integration code and a fixture generator; it does not contain either application's binaries or renderer code.
@@ -39,14 +37,14 @@ npm run verify:vault
 
 The generator creates **Atelier Demo Vault** with 58 fictional notes, three Canvas boards, three Bases views, attachments, bookmarks and templates. It refuses to overwrite an existing vault. Generated vaults, local configuration, application copies, build outputs and backups are ignored by Git.
 
-To try the custom workspace in a browser:
+To preview navigation and settings in a browser:
 
 ```powershell
 npm run build:desktop -- --build-only
 npm run preview:desktop
 ```
 
-Open `http://127.0.0.1:4318/`. This preview uses disposable fixture copies and does not run the real Obsidian renderer.
+Open `http://127.0.0.1:4318/`. This fixture does not run the real Obsidian renderer.
 
 ## Desktop UI patch
 
@@ -63,9 +61,9 @@ Save your work and **fully quit Claude Desktop from its tray menu**, then apply 
 npm run install:desktop
 ```
 
-Open **Obsidian** in the main navigation for the custom workspace. **Vaults** toggles it in its saved layout. **Actual Obsidian · demo**, beside Vaults at the top right, opens the actual renderer with a copied **Claude Runtime Demo** vault. Its supporting scripts must remain in this checkout.
+Open **Obsidian** in the main navigation to use the actual renderer with a copied **Claude Runtime Demo** vault. Its supporting scripts must remain in this checkout. If the native mode navigation is unavailable, the same button appears at the top right.
 
-Use the **⚙ Obsidian settings** button beside the actual-runtime launcher to switch **Obsidian controls → Minimal / All**. The choice is saved and applied to open demo views through the enabled **atelier** snippet; reopening Claude uses the same mode. The same row is inserted into Claude's settings panels when their native settings container is available. The original custom vault viewer is unchanged. The small button at the top left of embedded Obsidian collapses its file list.
+Open Claude's own **Settings → General → Obsidian** section to switch **Obsidian controls → Minimal / All**. The section is rendered by the installed General settings component. The choice is saved and applied to open demo views through the enabled **atelier** snippet; reopening Claude uses the same mode. The small button at the top left of embedded Obsidian collapses its file list.
 
 The style can also be applied or removed live with `node scripts/apply-minimal-ui.mjs --vault "path to Claude Runtime Demo"` and the optional `--restore` flag. Only the marked minimal-controls block is removed for All; the vault's existing stylesheet and its original backup are preserved. Keep the demo's **atelier** CSS snippet enabled for the switch to take effect.
 
@@ -91,7 +89,7 @@ claude plugin marketplace add .
 claude plugin install atelier-obsidian@atelier-local --scope user
 ```
 
-Reload plugins in a compatible Code session. This mod shares the catalog with the custom workspace and supports explicit note/passage insertion into a prompt and saving a reviewed response as a new note. It is distinct from the real-renderer experiment.
+Reload plugins in a compatible Code session. This optional mod has its own catalog and supports explicit note/passage insertion into a prompt and saving a reviewed response as a new note. It is distinct from the real-renderer experiment.
 
 ## Earlier MCP App
 
@@ -99,10 +97,10 @@ Reload plugins in a compatible Code session. This mod shares the catalog with th
 
 ## Verification and limitations
 
-`npm test` covers vault boundaries, catalog and control-preference persistence, concurrent/stale saves, images, Canvas input, saved UI state, rollback, frame trust and runtime isolation/lifecycle. The official mod has a separate `claude plugin test` suite. Windows CI builds generated fixtures and runs the Node suite.
+`npm test` covers vault boundaries, catalog and control-preference persistence, concurrent/stale saves, native navigation/settings, rollback, frame trust and runtime isolation/lifecycle. The official mod has a separate `claude plugin test` suite. Windows CI builds generated fixtures and runs the Node suite.
 
 Native Electron checks exercised note/Canvas rendering, resizing, hide/show, host settings, theme-listener preservation and clean shutdown. Browser and mod-kit tests do not establish native pixels; the real-renderer demo has also received a direct visual check inside Claude.
 
-The custom viewer implements a subset of Obsidian features. The real renderer currently uses a copied demo vault. Connecting registered vaults to it, production packaging, community plugins, popouts and embedded browser compatibility remain unfinished.
+The real renderer currently uses a copied demo vault. Connecting registered vaults to it, production packaging, community plugins, popouts and embedded browser compatibility remain unfinished.
 
 See [architecture](docs/ARCHITECTURE.md) and [runtime experiments](docs/EXPERIMENTS.md) for implementation details.

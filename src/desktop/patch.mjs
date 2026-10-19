@@ -32,9 +32,18 @@ export function injectWorkspace(html,{script,style}){
  const injection=start+'<style id="atelier-workspace-style">'+style.replace(/<\/style/gi,'<\\/style')+'</style><script data-atelier-workspace>'+script.replace(/<\/script/gi,'<\\/script')+'</script>'+end;
  return html.replace('</body>',()=>injection+'</body>');
 }
-const allowed=new Set(['claude.exe','resources/app.asar','resources/ion-dist/index.html']);
+export const nativeSettingsFile='resources/ion-dist/assets/v1/c0db37792-CLeAbLs5.js';
+export function injectNativeSettings(source){
+ const section='o(h,{title:"Obsidian",children:o("div",{"data-atelier-settings-slot":"obsidian-controls"})})';
+ if(source.includes(section)){if(source.split(section).length!==2)throw new Error('Native settings anchor is duplicated.');return source;}
+ const anchor='e&&!t&&a(r,{children:[o(z,{}),o(U,{})]})]})}var Ft=';
+ if(source.split(anchor).length!==2||source.includes('data-atelier-settings-slot'))throw new Error('The official General settings anchor is missing or ambiguous.');
+ return source.replace(anchor,'e&&!t&&a(r,{children:[o(z,{}),o(U,{})]}),'+section+']})}var Ft=');
+}
+const coreTargets=['claude.exe','resources/app.asar','resources/ion-dist/index.html'],allowed=new Set([...coreTargets,nativeSettingsFile]);
+const validFiles=files=>Array.isArray(files)&&[3,4].includes(files.length)&&new Set(files.map(f=>f.relative)).size===files.length&&coreTargets.every(relative=>files.some(file=>file.relative===relative))&&files.every(file=>allowed.has(file.relative));
 async function inspect(manifest,restore){
- if(!path.isAbsolute(manifest.installDir)||manifest.files?.length!==3||new Set(manifest.files.map(f=>f.relative)).size!==3)throw new Error('Invalid Desktop patch manifest');
+ if(!path.isAbsolute(manifest.installDir)||!validFiles(manifest.files))throw new Error('Invalid Desktop patch manifest');
  const changes=[];
  for(const file of manifest.files){
   if(!allowed.has(file.relative))throw new Error('Unexpected Desktop patch target');const target=path.join(manifest.installDir,...file.relative.split('/'));
@@ -61,9 +70,9 @@ async function changeInstallation(manifest,restore,{isRunning}){
  }finally{await lock.close();await fs.unlink(lockFile);}
 }
 export function checkUpdateBase(manifest,installDir,current){
- if(manifest?.version!==1||!Array.isArray(manifest.files)||manifest.files.length!==3||new Set(manifest.files.map(f=>f.relative)).size!==3)throw new Error('Invalid previous patch manifest.');
+ if(manifest?.version!==1||!validFiles(manifest.files))throw new Error('Invalid previous patch manifest.');
  if(path.resolve(manifest.installDir).toLowerCase()!==path.resolve(installDir).toLowerCase())throw new Error('Previous patch belongs to a different installation.');
- for(const relative of ['claude.exe','resources/app.asar','resources/ion-dist/index.html']){
+ for(const {relative}of manifest.files){
   const file=manifest.files.find(file=>file.relative===relative);if(!file||!Buffer.isBuffer(current[relative]))throw new Error('Invalid previous patch manifest.');
   if(sha256(current[relative])!==file.patchedHash)throw new Error('Installed Desktop changed since the previous patch: '+relative);
  }
